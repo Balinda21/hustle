@@ -1,0 +1,185 @@
+'use client';
+
+import React, { createContext, useState, useEffect, useContext, useMemo, useRef } from 'react';
+import storage from '../services/storage';
+import { chatService } from '../services/chatService';
+
+interface User {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  imageUrl: string | null;
+  isVerified: boolean;
+  accountBalance?: number;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  refreshToken: string | null;
+  isLoading: boolean;
+  login: (token: string, user: User, refreshToken?: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUserBalance: (balance: number) => void;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const safetyTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    loadStoredAuth()
+      .then(() => {
+        clearTimeout(safetyTimeout);
+      })
+      .catch(() => {
+        clearTimeout(safetyTimeout);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const loadStoredAuth = async () => {
+    try {
+      let storedToken: string | null = null;
+      let storedUser: string | null = null;
+      let storedRefreshToken: string | null = null;
+
+      try {
+        const results = await Promise.all([
+          storage.getItem('auth_token'),
+          storage.getItem('auth_user'),
+          storage.getItem('auth_refresh_token'),
+        ]);
+        storedToken = results[0];
+        storedUser = results[1];
+        storedRefreshToken = results[2];
+      } catch {
+        // Continue with null values
+      }
+
+      if (storedToken && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setToken(storedToken);
+          setUser(parsedUser);
+          if (storedRefreshToken) {
+            setRefreshToken(storedRefreshToken);
+          }
+        } catch {
+          storage.removeItem('auth_token').catch(() => {});
+          storage.removeItem('auth_user').catch(() => {});
+          storage.removeItem('auth_refresh_token').catch(() => {});
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error loading stored auth:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (newToken: string, newUser: User, newRefreshToken?: string) => {
+    try {
+      await storage.setItem('auth_token', newToken);
+      await storage.setItem('auth_user', JSON.stringify(newUser));
+      if (newRefreshToken) {
+        await storage.setItem('auth_refresh_token', newRefreshToken);
+      }
+
+      setToken(newToken);
+      setUser(newUser);
+      if (newRefreshToken) {
+        setRefreshToken(newRefreshToken);
+      }
+    } catch (error) {
+      console.error('Error in login:', error);
+      setToken(null);
+      setUser(null);
+      setRefreshToken(null);
+      throw error;
+    }
+  };
+
+  const updateUserBalance = (balance: number) => {
+    if (user) {
+      const updatedUser = { ...user, accountBalance: balance };
+      setUser(updatedUser);
+      storage.setItem('auth_user', JSON.stringify(updatedUser)).catch(() => {});
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await storage.removeItem('auth_token');
+      await storage.removeItem('auth_user');
+      await storage.removeItem('auth_refresh_token');
+      setToken(null);
+      setUser(null);
+      setRefreshToken(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+      setToken(null);
+      setUser(null);
+      setRefreshToken(null);
+    }
+  };
+
+  const isAuthenticated = useMemo(() => {
+    return !!token && !!user;
+  }, [token, user]);
+
+  // Connect socket when authenticated
+  const socketConnectedRef = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && token && !socketConnectedRef.current) {
+      const connectTimeout = setTimeout(() => {
+        try {
+          chatService.connect(token);
+          socketConnectedRef.current = true;
+        } catch (error) {
+          console.warn('Socket connection failed, will retry:', error);
+        }
+      }, 1000);
+      return () => clearTimeout(connectTimeout);
+    } else if (!isAuthenticated && socketConnectedRef.current) {
+      chatService.disconnect();
+      socketConnectedRef.current = false;
+    }
+  }, [isAuthenticated, token]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        refreshToken,
+        isLoading,
+        login,
+        logout,
+        updateUserBalance,
+        isAuthenticated,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
