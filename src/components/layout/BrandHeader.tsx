@@ -12,9 +12,9 @@ export default function BrandHeader() {
       {/* Logo + Brand */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
-          <span className="text-sm font-bold text-black">DB</span>
+          <span className="text-sm font-bold text-black">CR</span>
         </div>
-        <span className="text-lg font-bold text-text-primary">Business</span>
+        <span className="text-lg font-bold text-text-primary">ChainReturns</span>
       </div>
       {/* Account chip */}
       <button

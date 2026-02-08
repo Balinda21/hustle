@@ -23,10 +23,10 @@ export default function ContactPage() {
         <div className="bg-white rounded-2xl p-5 w-full shadow-lg mb-6">
           <div className="flex items-center mb-3">
             <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center mr-3">
-              <span className="text-sm font-bold text-black">DB</span>
+              <span className="text-sm font-bold text-black">CR</span>
             </div>
             <div className="flex-1 flex items-center justify-between">
-              <span className="text-base font-semibold text-black">Business</span>
+              <span className="text-base font-semibold text-black">ChainReturns</span>
               <span className="text-sm text-gray-500">23:39</span>
             </div>
           </div>
