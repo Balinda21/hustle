@@ -111,13 +111,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserBalance = (balance: number) => {
-    if (user) {
-      const updatedUser = { ...user, accountBalance: balance };
-      setUser(updatedUser);
+  const updateUserBalance = useCallback((balance: number) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, accountBalance: balance };
       storage.setItem('auth_user', JSON.stringify(updatedUser)).catch(() => {});
-    }
-  };
+      return updatedUser;
+    });
+  }, []);
 
   const logout = async () => {
     try {
