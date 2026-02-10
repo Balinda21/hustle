@@ -4,7 +4,7 @@
  */
 
 // Backend API Base URL
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chainreturns.it.com/api';
+export const API_BASE_URL ='https://api.chainreturns.it.com/api';
 
 // External API URLs
 export const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
