@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, useMemo, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useRef, useCallback } from 'react';
 import storage from '../services/storage';
 import { chatService } from '../services/chatService';
 
