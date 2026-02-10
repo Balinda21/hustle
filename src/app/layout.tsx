@@ -6,6 +6,9 @@ import { ToastProvider } from '@/contexts/ToastContext';
 export const metadata: Metadata = {
   title: 'ChainReturns - Digital Asset Trading',
   description: 'Trade digital assets with confidence',
+  icons: {
+    icon: '/logo.ico',
+  },
 };
 
 export default function RootLayout({
