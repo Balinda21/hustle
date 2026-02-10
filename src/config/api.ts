@@ -3,14 +3,8 @@
  * Centralized configuration for all API endpoints
  */
 
-// Backend API Base URL (must be provided via .env)
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!apiBaseUrl) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not set. Please configure it in your .env file.');
-}
-
-export const API_BASE_URL = apiBaseUrl;
+// Backend API Base URL
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chainreturns.it.com/api';
 
 // External API URLs
 export const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
