@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { chatService, ChatMessage, ChatSession } from '@/services/chatService';
@@ -43,6 +43,9 @@ const commonEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','�
 
 export default function ChatPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSessionId = searchParams.get('sessionId');
+  const urlUserId = searchParams.get('userId');
   const { token, user } = useAuth();
   const { showToast } = useToast();
 
@@ -82,7 +85,7 @@ export default function ChatPage() {
     }, 100);
   };
 
-  // Initialize chat
+  // Initialize chat (honor sessionId from URL so opening a specific conversation shows its messages)
   useEffect(() => {
     if (!token) return;
 
@@ -93,9 +96,25 @@ export default function ChatPage() {
         chatService.connect(token);
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const chatSession = await chatService.getOrCreateSession();
-        setSession(chatSession);
-        chatService.joinSession(chatSession.id);
+        let chatSession: ChatSession;
+
+        if (urlSessionId) {
+          // Opening a specific session (e.g. admin clicked from list) — use it and load its messages
+          chatSession = {
+            id: urlSessionId,
+            userId: urlUserId || '',
+            status: 'OPEN',
+            createdAt: new Date().toISOString(),
+          };
+          setSession(chatSession);
+          chatService.joinSession(chatSession.id);
+        } else {
+          // Normal user flow: get or create my session
+          chatSession = await chatService.getOrCreateSession();
+          setSession(chatSession);
+          chatService.joinSession(chatSession.id);
+        }
+
         await new Promise(resolve => setTimeout(resolve, 300));
 
         try {
@@ -107,6 +126,25 @@ export default function ChatPage() {
 
         try { await chatService.markAsRead(chatSession.id); } catch {}
         setLoading(false);
+
+        // Refetch messages once after a short delay to catch any that arrived just before we opened
+        setTimeout(async () => {
+          if (!chatSession?.id) return;
+          try {
+            const messagesData = await chatService.getMessages(chatSession.id);
+            setMessages((prev) => {
+              const byId = new Map(prev.map((m) => [m.id, m]));
+              for (const m of messagesData.messages || []) {
+                if (!byId.has(m.id)) byId.set(m.id, m);
+              }
+              return Array.from(byId.values()).sort(
+                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+            });
+          } catch {
+            // ignore
+          }
+        }, 800);
       } catch (error: any) {
         setError(error.message || 'Failed to initialize chat');
         setLoading(false);
@@ -114,7 +152,7 @@ export default function ChatPage() {
     };
 
     initializeChat();
-  }, [token]);
+  }, [token, urlSessionId, urlUserId]);
 
   // Listen for new messages
   useEffect(() => {

@@ -13,7 +13,8 @@ const tabs = [
 ];
 
 // Routes where bottom nav should be hidden
-const hiddenRoutes = ['/chat', '/contact'];
+// (full-screen flows or bottom sheets where nav would cover actions)
+const hiddenRoutes = ['/chat', '/contact', '/option-trading', '/contract-trading'];
 
 export default function BottomNav() {
   const pathname = usePathname();
