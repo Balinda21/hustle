@@ -69,6 +69,9 @@ export default function AccountPage() {
   const [accountBalance, setAccountBalance] = useState(0);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [showWithdrawSuccess, setShowWithdrawSuccess] = useState(false);
+  const [withdrawTxDetails, setWithdrawTxDetails] = useState<{ amount: string; network: string; wallet: string; currency: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currencies = ['USDT', 'ETH', 'BTC'];
@@ -144,6 +147,53 @@ export default function AccountPage() {
     }
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount);
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
+    if (amount > accountBalance) {
+      showToast(`Insufficient balance. Your balance is ${accountBalance.toFixed(2)} USDT`, 'error');
+      return;
+    }
+    if (!walletAddress.trim()) {
+      showToast('Please enter your wallet address', 'error');
+      return;
+    }
+
+    setWithdrawLoading(true);
+    try {
+      const response = await api.post(API_ENDPOINTS.WITHDRAWALS.CREATE, {
+        amount,
+        network: withdrawNetwork,
+        walletAddress: walletAddress.trim(),
+        currency: selectedCurrency,
+      });
+
+      if (response.success) {
+        const newBalance = parseFloat(response.data?.newBalance) || (accountBalance - amount);
+        setAccountBalance(newBalance);
+        updateUserBalance(newBalance);
+        setWithdrawTxDetails({
+          amount: amount.toFixed(2),
+          network: withdrawNetwork,
+          wallet: walletAddress.trim(),
+          currency: selectedCurrency,
+        });
+        setWithdrawAmount('');
+        setWalletAddress('');
+        setShowWithdrawSuccess(true);
+      } else {
+        showToast(response.message || 'Withdrawal failed. Please try again.', 'error');
+      }
+    } catch (error: any) {
+      showToast(error?.message || 'Something went wrong. Please try again.', 'error');
+    } finally {
+      setWithdrawLoading(false);
+    }
   };
 
   const handleMenuItemPress = (item: MenuItem) => {
@@ -440,7 +490,7 @@ export default function AccountPage() {
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   placeholder="0"
                 />
-                <button className="bg-[#1C1C1C] rounded-xl py-4 px-5">
+                <button className="bg-[#1C1C1C] rounded-xl py-4 px-5" onClick={() => setWithdrawAmount(accountBalance.toFixed(2))}>
                   <span className="text-sm font-semibold text-text-primary">MAX</span>
                 </button>
               </div>
@@ -469,8 +519,14 @@ export default function AccountPage() {
             </div>
 
             {/* Confirm Button */}
-            <button className="w-full bg-accent rounded-xl py-4 text-center mb-4 hover:opacity-80 active:opacity-60 transition">
-              <span className="text-base font-semibold text-background">confirm</span>
+            <button
+              className="w-full bg-accent rounded-xl py-4 text-center mb-4 hover:opacity-80 active:opacity-60 transition disabled:opacity-50"
+              onClick={handleWithdraw}
+              disabled={withdrawLoading}
+            >
+              <span className="text-base font-semibold text-background">
+                {withdrawLoading ? 'Processing...' : 'confirm'}
+              </span>
             </button>
 
             {/* Info */}
@@ -505,6 +561,54 @@ export default function AccountPage() {
                 <span className="text-[15px] font-medium text-text-primary">{currency}</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal Pending Modal */}
+      {showWithdrawSuccess && withdrawTxDetails && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-5">
+          <div className="w-full max-w-[360px] bg-card rounded-3xl p-7 flex flex-col items-center">
+            {/* Pending Icon */}
+            <div className="w-[88px] h-[88px] rounded-full bg-[rgba(255,165,0,0.15)] flex items-center justify-center mb-5">
+              <div className="w-[68px] h-[68px] rounded-full bg-[#FFA500] flex items-center justify-center">
+                <span className="text-white text-3xl font-bold">⏳</span>
+              </div>
+            </div>
+
+            <h3 className="text-[22px] font-bold text-text-primary mb-1">Withdrawal Pending</h3>
+            <p className="text-sm text-text-muted text-center mb-6">Your request has been submitted and is under review</p>
+
+            {/* Details */}
+            <div className="w-full bg-background rounded-2xl p-4 space-y-3 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Amount</span>
+                <span className="text-sm font-bold text-[#ff4d4d]">-${withdrawTxDetails.amount} {withdrawTxDetails.currency}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Network</span>
+                <span className="text-sm font-semibold text-accent">{withdrawTxDetails.network}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Wallet</span>
+                <span className="text-xs font-mono text-text-primary truncate max-w-[180px]">{withdrawTxDetails.wallet}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Status</span>
+                <span className="text-xs font-semibold text-[#FFA500] bg-[rgba(255,165,0,0.1)] px-2 py-1 rounded-md">PENDING</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-text-muted text-center mb-6">
+              Your withdrawal will be sent to your wallet within a couple of hours after admin review.
+            </p>
+
+            <button
+              className="w-full bg-accent rounded-[14px] py-4 text-center hover:opacity-80 transition"
+              onClick={() => setShowWithdrawSuccess(false)}
+            >
+              <span className="text-base font-bold text-black">OK</span>
+            </button>
           </div>
         </div>
       )}

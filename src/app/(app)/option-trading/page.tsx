@@ -44,7 +44,6 @@ export default function OptionTradingPage() {
 
   // Success modal state
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successProfit, setSuccessProfit] = useState(0);
   const [successNewBalance, setSuccessNewBalance] = useState(0);
 
   // Prevent double-completion
@@ -105,6 +104,7 @@ export default function OptionTradingPage() {
         setCurrentOrderId(response.data.order.id);
         setOrderAmount(amountNum);
         setOrderExpectedProfit(response.data.order.expectedProfit || calculateExpected());
+        setBalance(prev => prev - amountNum);
         setShowCountdown(true);
       } else {
         showToast(response.message || 'Failed to place order', 'error');
@@ -123,31 +123,12 @@ export default function OptionTradingPage() {
 
       setShowCountdown(false);
       setCurrentOrderId(null);
-
-      if (response.success) {
-        const newBalance = response.data?.newBalance;
-        const profit = response.data?.order?.profit;
-
-        setSuccessProfit(profit || orderExpectedProfit);
-        setSuccessNewBalance(newBalance || (balance + (profit || orderExpectedProfit)));
-        setBalance(newBalance || (balance + (profit || orderExpectedProfit)));
-        setShowSuccess(true);
-      } else {
-        const localProfit = orderExpectedProfit;
-        const localNewBalance = balance + localProfit;
-        setSuccessProfit(localProfit);
-        setSuccessNewBalance(localNewBalance);
-        setBalance(localNewBalance);
-        setShowSuccess(true);
-      }
+      setSuccessNewBalance(balance);
+      setShowSuccess(true);
     } catch {
       setShowCountdown(false);
       setCurrentOrderId(null);
-      const localProfit = orderExpectedProfit;
-      const localNewBalance = balance + localProfit;
-      setSuccessProfit(localProfit);
-      setSuccessNewBalance(localNewBalance);
-      setBalance(localNewBalance);
+      setSuccessNewBalance(balance);
       setShowSuccess(true);
     }
   }, [currentOrderId, orderExpectedProfit, balance]);
@@ -302,13 +283,13 @@ export default function OptionTradingPage() {
               </div>
             </div>
 
-            <h3 className="text-[22px] font-bold text-text-primary mb-1">Trade Successful!</h3>
+            <h3 className="text-[22px] font-bold text-text-primary mb-1">Trade Placed</h3>
             <p className="text-base font-semibold text-accent mb-6">{symbol}</p>
 
-            {/* Profit Card */}
-            <div className="w-full bg-[rgba(76,175,80,0.1)] rounded-2xl py-[18px] px-5 text-center mb-4 border border-[rgba(76,175,80,0.2)]">
-              <p className="text-[13px] text-[#888] mb-1.5">Profit Earned</p>
-              <p className="text-[32px] font-bold text-[#4CAF50]">+${successProfit.toFixed(2)}</p>
+            {/* Amount Deducted Card */}
+            <div className="w-full bg-[rgba(255,77,77,0.1)] rounded-2xl py-[18px] px-5 text-center mb-4 border border-[rgba(255,77,77,0.2)]">
+              <p className="text-[13px] text-[#888] mb-1.5">Amount Deducted</p>
+              <p className="text-[32px] font-bold text-[#ff4d4d]">-${orderAmount.toFixed(2)}</p>
             </div>
 
             {/* New Balance */}

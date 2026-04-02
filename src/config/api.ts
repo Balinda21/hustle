@@ -87,6 +87,10 @@ export const API_ENDPOINTS = {
     MESSAGES: (sessionId: string) => `/chat/${sessionId}/messages`,
     READ: (sessionId: string) => `/chat/${sessionId}/read`,
   },
+  // Withdrawals
+  WITHDRAWALS: {
+    CREATE: '/withdrawals',
+  },
   // Admin
   ADMIN: {
     STATS: '/admin/stats',
