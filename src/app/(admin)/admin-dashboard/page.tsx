@@ -24,7 +24,9 @@ import {
   Hourglass,
   MailOpen,
   MessageCircle,
+  Bell,
 } from 'lucide-react';
+import { chatService } from '@/services/chatService';
 
 interface DashboardStats {
   totalUsers: number;
@@ -83,6 +85,7 @@ export default function AdminDashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const loadDashboardData = async () => {
     try {
@@ -145,6 +148,19 @@ export default function AdminDashboardPage() {
     loadDashboardData();
   }, []);
 
+  useEffect(() => {
+    // Fetch initial unread count
+    api.get(API_ENDPOINTS.ADMIN.NOTIFICATIONS_UNREAD_COUNT)
+      .then((res) => { if (res.success) setUnreadNotifications(res.data?.count || 0); })
+      .catch(() => {});
+
+    // Real-time new withdrawal alerts
+    const unsubscribe = chatService.onNewWithdrawal(() => {
+      setUnreadNotifications((prev) => prev + 1);
+    });
+    return () => unsubscribe();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
@@ -175,6 +191,18 @@ export default function AdminDashboardPage() {
             Welcome back, {user?.firstName || 'Admin'}
           </p>
         </div>
+        {/* Notification Bell */}
+        <button
+          className="relative p-2 rounded-lg bg-card mr-2"
+          onClick={() => { setUnreadNotifications(0); router.push('/admin-notifications'); }}
+        >
+          <Bell size={22} className="text-text-primary" />
+          {unreadNotifications > 0 && (
+            <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+            </span>
+          )}
+        </button>
         <button
           className="p-2 rounded-lg bg-danger/20"
           onClick={async () => {
