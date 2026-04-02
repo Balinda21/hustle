@@ -276,6 +276,18 @@ class ChatService {
     return 0;
   }
 
+  onOrderCompleted(callback: (data: { orderId: string; profit: number; newBalance: number; isWon: boolean }) => void) {
+    if (!this.socket) return () => {};
+    this.socket.on('order-completed', callback);
+    return () => {
+      this.socket?.off('order-completed', callback);
+    };
+  }
+
+  getSocket() {
+    return this.socket;
+  }
+
   get connected(): boolean {
     return this.isConnected && this.socket?.connected === true;
   }

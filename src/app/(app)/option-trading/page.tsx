@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { api } from '@/services/apiClient';
 import { API_ENDPOINTS } from '@/config/api';
 import CountdownModal from '@/components/trading/CountdownModal';
+import { chatService } from '@/services/chatService';
 import { X } from 'lucide-react';
 
 type OptionPeriod = {
@@ -54,17 +55,45 @@ export default function OptionTradingPage() {
   const isNegative = change24h < 0;
 
   useEffect(() => {
-    const fetchBalance = async () => {
+    const init = async () => {
       try {
         const response = await api.get(API_ENDPOINTS.AUTH.ME);
         if (response.success && response.data?.user?.accountBalance !== undefined) {
           setBalance(parseFloat(response.data.user.accountBalance) || 0);
         }
-      } catch {
-        // Silently fail
-      }
+      } catch {}
+
+      // Check for any active order (handles page refresh mid-countdown)
+      try {
+        const res = await api.get(API_ENDPOINTS.ORDERS.ACTIVE);
+        const order = res?.data?.order;
+        if (order) {
+          const endDate = new Date(order.endDate).getTime();
+          const now = Date.now();
+          if (now < endDate) {
+            // Countdown still running — resume it
+            setCurrentOrderId(order.id);
+            setOrderAmount(parseFloat(order.amount));
+            setOrderExpectedProfit((parseFloat(order.amount) * parseFloat(order.ror)) / 100);
+            setShowCountdown(true);
+          }
+          // If endDate already passed, backend scheduler will complete it and emit socket event
+        }
+      } catch {}
     };
-    fetchBalance();
+    init();
+
+    // Listen for backend auto-completion (handles refresh/disconnect case)
+    const unsubscribe = chatService.onOrderCompleted((data) => {
+      setBalance(data.newBalance);
+      setTradeWon(data.isWon);
+      setTradeProfit(data.profit);
+      setSuccessNewBalance(data.newBalance);
+      setShowCountdown(false);
+      setCurrentOrderId(null);
+      setShowSuccess(true);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleMax = () => {

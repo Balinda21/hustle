@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
   ORDERS: {
     LIST: '/orders',
     GET: (id: string) => `/orders/${id}`,
+    ACTIVE: '/orders/active',
     OPTION: '/orders/option',
     CONTRACT: '/orders/contract',
     AI_QUANTIFICATION: '/orders/ai-quantification',
