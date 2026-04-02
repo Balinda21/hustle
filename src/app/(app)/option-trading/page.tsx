@@ -121,9 +121,11 @@ export default function OptionTradingPage() {
     try {
       const response = await api.post(API_ENDPOINTS.ORDERS.COMPLETE(currentOrderId));
 
+      const newBalance = response?.data?.newBalance ?? balance;
+      setBalance(newBalance);
       setShowCountdown(false);
       setCurrentOrderId(null);
-      setSuccessNewBalance(balance);
+      setSuccessNewBalance(newBalance);
       setShowSuccess(true);
     } catch {
       setShowCountdown(false);
