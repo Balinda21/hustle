@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   LogOut,
   X,
+  Bell,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -19,6 +20,7 @@ interface AdminSidebarProps {
 
 const MENU_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin-dashboard' },
+  { label: 'Notifications', icon: Bell, path: '/admin-notifications' },
   { label: 'Users', icon: Users, path: '/admin-users' },
   { label: 'Chats', icon: MessageSquare, path: '/admin-chats' },
   { label: 'Transactions', icon: ArrowLeftRight, path: '', disabled: true },

@@ -107,6 +107,10 @@ export const API_ENDPOINTS = {
     APPROVE_LOAN: (loanId: string) => `/admin/loans/${loanId}/approve`,
     REJECT_LOAN: (loanId: string) => `/admin/loans/${loanId}/reject`,
     REFERRAL_STATS: '/admin/referrals/stats',
+    NOTIFICATIONS: '/admin/notifications',
+    NOTIFICATIONS_UNREAD_COUNT: '/admin/notifications/unread-count',
+    NOTIFICATION_READ: (id: string) => `/admin/notifications/${id}/read`,
+    NOTIFICATIONS_READ_ALL: '/admin/notifications/read-all',
   },
   // Upload
   UPLOAD: {
