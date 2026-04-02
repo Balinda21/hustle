@@ -86,6 +86,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [lossMode, setLossMode] = useState(false);
+  const [tradeModeLoading, setTradeModeLoading] = useState(false);
 
   const loadDashboardData = async () => {
     try {
@@ -147,6 +149,25 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    // Fetch trade mode
+    api.get(API_ENDPOINTS.ADMIN.TRADE_MODE)
+      .then((res) => { if (res.success) setLossMode(res.data?.lossMode ?? false); })
+      .catch(() => {});
+  }, []);
+
+  const handleTradeModeToggle = async () => {
+    setTradeModeLoading(true);
+    try {
+      const res = await api.post(API_ENDPOINTS.ADMIN.TRADE_MODE, { lossMode: !lossMode });
+      if (res.success) setLossMode(res.data?.lossMode ?? !lossMode);
+    } catch {
+      // ignore
+    } finally {
+      setTradeModeLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch initial unread count
@@ -333,6 +354,49 @@ export default function AdminDashboardPage() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Trade Mode Toggle */}
+        <div className="px-4 mb-5">
+          <h3 className="text-lg font-bold text-text-primary mb-3">Trade Control</h3>
+          <div
+            className="rounded-2xl p-5 border-2 flex items-center justify-between"
+            style={{
+              backgroundColor: lossMode ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+              borderColor: lossMode ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)',
+            }}
+          >
+            <div className="flex-1 mr-4">
+              <p className="text-base font-bold text-text-primary mb-1">
+                Loss Mode
+              </p>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                {lossMode
+                  ? 'ON — Users are losing trades. Their staked amount is kept.'
+                  : 'OFF — Users are winning trades. Profit is added to their balance.'}
+              </p>
+              <span
+                className="inline-block mt-2 px-3 py-0.5 rounded-full text-[11px] font-bold"
+                style={{
+                  backgroundColor: lossMode ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)',
+                  color: lossMode ? '#ef4444' : '#22c55e',
+                }}
+              >
+                {lossMode ? 'LOSS MODE ACTIVE' : 'PROFIT MODE ACTIVE'}
+              </span>
+            </div>
+            <button
+              onClick={handleTradeModeToggle}
+              disabled={tradeModeLoading}
+              className="relative flex-shrink-0 w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-60"
+              style={{ backgroundColor: lossMode ? '#ef4444' : '#22c55e' }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300"
+                style={{ transform: lossMode ? 'translateX(28px)' : 'translateX(0)' }}
+              />
+            </button>
           </div>
         </div>
 
