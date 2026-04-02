@@ -111,6 +111,7 @@ export const API_ENDPOINTS = {
     NOTIFICATIONS_UNREAD_COUNT: '/admin/notifications/unread-count',
     NOTIFICATION_READ: (id: string) => `/admin/notifications/${id}/read`,
     NOTIFICATIONS_READ_ALL: '/admin/notifications/read-all',
+    TRADE_MODE: '/admin/settings/trade-mode',
   },
   // Upload
   UPLOAD: {
