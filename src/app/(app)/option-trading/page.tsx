@@ -45,6 +45,8 @@ export default function OptionTradingPage() {
   // Success modal state
   const [showSuccess, setShowSuccess] = useState(false);
   const [successNewBalance, setSuccessNewBalance] = useState(0);
+  const [tradeWon, setTradeWon] = useState(false);
+  const [tradeProfit, setTradeProfit] = useState(0);
 
   // Prevent double-completion
   const isCompletingRef = useRef(false);
@@ -122,7 +124,11 @@ export default function OptionTradingPage() {
       const response = await api.post(API_ENDPOINTS.ORDERS.COMPLETE(currentOrderId));
 
       const newBalance = response?.data?.newBalance ?? balance;
+      const profit = response?.data?.order?.profit ?? 0;
+      const won = profit > 0;
       setBalance(newBalance);
+      setTradeWon(won);
+      setTradeProfit(profit);
       setShowCountdown(false);
       setCurrentOrderId(null);
       setSuccessNewBalance(newBalance);
@@ -285,14 +291,23 @@ export default function OptionTradingPage() {
               </div>
             </div>
 
-            <h3 className="text-[22px] font-bold text-text-primary mb-1">Trade Placed</h3>
+            <h3 className="text-[22px] font-bold text-text-primary mb-1">
+              {tradeWon ? 'Trade Won!' : 'Trade Complete'}
+            </h3>
             <p className="text-base font-semibold text-accent mb-6">{symbol}</p>
 
-            {/* Amount Deducted Card */}
-            <div className="w-full bg-[rgba(255,77,77,0.1)] rounded-2xl py-[18px] px-5 text-center mb-4 border border-[rgba(255,77,77,0.2)]">
-              <p className="text-[13px] text-[#888] mb-1.5">Amount Deducted</p>
-              <p className="text-[32px] font-bold text-[#ff4d4d]">-${orderAmount.toFixed(2)}</p>
-            </div>
+            {/* Profit / Loss Card */}
+            {tradeWon ? (
+              <div className="w-full bg-[rgba(76,175,80,0.1)] rounded-2xl py-[18px] px-5 text-center mb-4 border border-[rgba(76,175,80,0.2)]">
+                <p className="text-[13px] text-[#888] mb-1.5">Profit Earned</p>
+                <p className="text-[32px] font-bold text-[#4CAF50]">+${tradeProfit.toFixed(2)}</p>
+              </div>
+            ) : (
+              <div className="w-full bg-[rgba(255,77,77,0.1)] rounded-2xl py-[18px] px-5 text-center mb-4 border border-[rgba(255,77,77,0.2)]">
+                <p className="text-[13px] text-[#888] mb-1.5">Amount Lost</p>
+                <p className="text-[32px] font-bold text-[#ff4d4d]">-${orderAmount.toFixed(2)}</p>
+              </div>
+            )}
 
             {/* New Balance */}
             <div className="w-full flex justify-between items-center py-3 px-1">
