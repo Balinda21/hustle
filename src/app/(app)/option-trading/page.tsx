@@ -13,15 +13,17 @@ type OptionPeriod = {
   seconds: number;
   label: string;
   ror: number;
+  minAmount: number;
+  maxAmount: number;
 };
 
 const OPTION_PERIODS: OptionPeriod[] = [
-  { seconds: 60, label: '60 s', ror: 20.0 },
-  { seconds: 120, label: '120 s', ror: 30.0 },
-  { seconds: 180, label: '180 s', ror: 40.0 },
-  { seconds: 360, label: '360 s', ror: 50.0 },
-  { seconds: 7200, label: '7200 s', ror: 60.0 },
-  { seconds: 21600, label: '21600 s', ror: 80.0 },
+  { seconds: 60,    label: '60 s',    ror: 20.0, minAmount: 100,        maxAmount: 1_000_000   },
+  { seconds: 120,   label: '120 s',   ror: 30.0, minAmount: 10_000,     maxAmount: 1_500_000   },
+  { seconds: 180,   label: '180 s',   ror: 40.0, minAmount: 50_000,     maxAmount: 3_000_000   },
+  { seconds: 360,   label: '360 s',   ror: 50.0, minAmount: 1_000_000,  maxAmount: 60_000_000  },
+  { seconds: 7200,  label: '7200 s',  ror: 60.0, minAmount: 5_000_000,  maxAmount: 100_000_000 },
+  { seconds: 21600, label: '21600 s', ror: 80.0, minAmount: 10_000_000, maxAmount: 500_000_000 },
 ];
 
 export default function OptionTradingPage() {
@@ -97,7 +99,8 @@ export default function OptionTradingPage() {
   }, []);
 
   const handleMax = () => {
-    setAmount(balance.toFixed(2));
+    const max = Math.min(balance, selectedPeriod.maxAmount);
+    setAmount(max.toFixed(2));
   };
 
   const calculateExpected = () => {
@@ -112,8 +115,16 @@ export default function OptionTradingPage() {
 
   const handleConfirm = async () => {
     const amountNum = parseFloat(amount);
-    if (amountNum <= 0) {
+    if (!amountNum || amountNum <= 0) {
       showToast('Please enter a valid amount', 'error');
+      return;
+    }
+    if (amountNum < selectedPeriod.minAmount) {
+      showToast('Amount is insufficient to purchase', 'error');
+      return;
+    }
+    if (amountNum > selectedPeriod.maxAmount) {
+      showToast(`Amount exceeds the maximum of ${selectedPeriod.maxAmount.toLocaleString()} for this option`, 'error');
       return;
     }
     if (amountNum > balance) {
@@ -270,6 +281,19 @@ export default function OptionTradingPage() {
                 <span className="text-sm font-semibold text-accent">MAX</span>
               </button>
             </div>
+            {/* Amount Range */}
+            <p className="text-xs text-[#888] mt-2">
+              Amount Range:{' '}
+              <span className="text-text-primary font-medium">
+                {selectedPeriod.minAmount.toLocaleString()} – {selectedPeriod.maxAmount.toLocaleString()}
+              </span>
+            </p>
+            {/* Inline insufficient warning */}
+            {parseFloat(amount) > 0 && parseFloat(amount) < selectedPeriod.minAmount && (
+              <p className="text-xs text-[#ff4d4d] mt-1">
+                Amount is insufficient to purchase. Minimum is {selectedPeriod.minAmount.toLocaleString()}.
+              </p>
+            )}
           </div>
 
           {/* Summary */}

@@ -24,6 +24,53 @@ class MarketDataService {
   private currentSymbol: string = '';
   private currentInterval: string = '15m';
 
+  // Approximate daily volatility per symbol (as a fraction of price)
+  private readonly symbolVolatility: Record<string, number> = {
+    WTI: 0.012, BRENT: 0.012, NG: 0.025, HO: 0.010, RBOB: 0.010,
+    GC: 0.006, XPT: 0.010, HG: 0.012,
+    'USD/CNH': 0.003, 'USD/JPY': 0.004, 'EUR/USD': 0.003, 'USD/CHF': 0.003,
+    'USD/HKD': 0.001, 'USD/SGD': 0.003, 'GBP/USD': 0.004, 'HKD/CNY': 0.002,
+    'AUD/USD': 0.004,
+  };
+
+  private generateSimulatedCandles(
+    symbol: string,
+    basePrice: number,
+    interval: string,
+    limit: number
+  ): CandleData[] {
+    const intervalMultipliers: Record<string, number> = {
+      '1m': 0.12, '5m': 0.28, '15m': 0.50, '30m': 0.68, '1H': 1.0, '1D': 3.0,
+    };
+    const msPerInterval: Record<string, number> = {
+      '1m': 60_000, '5m': 300_000, '15m': 900_000,
+      '30m': 1_800_000, '1H': 3_600_000, '1D': 86_400_000,
+    };
+
+    const dailyVol = this.symbolVolatility[symbol] ?? 0.008;
+    const candleVol = dailyVol * (intervalMultipliers[interval] ?? 0.5);
+    const msPerCandle = msPerInterval[interval] ?? 900_000;
+    const now = Date.now();
+
+    // Walk backwards from basePrice to get historically consistent closes
+    const closes: number[] = [basePrice];
+    for (let i = 1; i < limit; i++) {
+      const prev = closes[closes.length - 1];
+      const change = (Math.random() - 0.5) * 2 * candleVol;
+      closes.push(prev / (1 + change));
+    }
+    closes.reverse(); // now chronological, last value = basePrice
+
+    return closes.map((close, i) => {
+      const open = i === 0 ? close * (1 + (Math.random() - 0.5) * candleVol) : closes[i - 1];
+      const high = Math.max(open, close) * (1 + Math.random() * candleVol * 0.6);
+      const low  = Math.min(open, close) * (1 - Math.random() * candleVol * 0.6);
+      const volume = basePrice * (500 + Math.random() * 1500);
+      const time  = now - (limit - 1 - i) * msPerCandle;
+      return { time, open, high, low, close, volume };
+    });
+  }
+
   private mapInterval(interval: string): string {
     const map: Record<string, string> = {
       '1m': '1m',
@@ -73,10 +120,14 @@ class MarketDataService {
   async fetchCandles(
     symbol: string,
     interval: string = '15m',
-    limit: number = 100
+    limit: number = 100,
+    basePrice?: number
   ): Promise<CandleData[]> {
     const binanceSymbol = this.toBinanceSymbol(symbol);
     if (!binanceSymbol) {
+      if (basePrice && basePrice > 0) {
+        return this.generateSimulatedCandles(symbol, basePrice, interval, limit);
+      }
       console.warn(`Symbol ${symbol} not supported on Binance`);
       return [];
     }

@@ -88,7 +88,7 @@ export default function ChartPage() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const candles = await marketDataService.fetchCandles(fetchSymbol, selectedTimeframe, 100);
+        const candles = await marketDataService.fetchCandles(fetchSymbol, selectedTimeframe, 100, initialPrice);
         if (isMounted) {
           setChartData(candles);
           setIsLoading(false);
