@@ -18,7 +18,7 @@ type OptionPeriod = {
 };
 
 const OPTION_PERIODS: OptionPeriod[] = [
-  { seconds: 60,    label: '60 s',    ror: 20.0, minAmount: 100,        maxAmount: 1_000_000   },
+  { seconds: 60,    label: '60 s',    ror: 20.0, minAmount: 200,        maxAmount: 1_000_000   },
   { seconds: 120,   label: '120 s',   ror: 30.0, minAmount: 10_000,     maxAmount: 1_500_000   },
   { seconds: 180,   label: '180 s',   ror: 40.0, minAmount: 50_000,     maxAmount: 3_000_000   },
   { seconds: 360,   label: '360 s',   ror: 50.0, minAmount: 1_000_000,  maxAmount: 60_000_000  },
